@@ -2,10 +2,12 @@
 
 Timer für Zauberwürfel mit Mischalgorithmus, Zeiten-Speicher und Lösungsanleitungen.
 
+**Ausprobieren:** https://thebrina91.github.io/speedcube-timer/
+
 ## Was drin ist
 - `main.py`: Desktop-App (Python, CustomTkinter, SQLite). Zeiten landen in `times.db`.
 - `index.html`: Web-App. Läuft im Browser, ohne Installation.
-  - Timer für 2x2, 3x3, Pyraminx, Skewb, Megaminx, Gear 3x3, Gear Zylinder, Gear Ball, Gear Pyraminx
+  - Timer für 2x2, 3x3, 3x3 Mirror, 4x4, Pyraminx, Skewb, Megaminx, Gear 3x3, Gear Zylinder, Gear Ball, Gear Pyraminx
   - Mischalgorithmus je Würfel
   - Letzte 5 Zeiten, Beste 10, Ao5, bestes Ao5, Reset mit Auswahl
   - Algorithmen (Anfänger, CFOP, Roux) mit 3D-Animation
