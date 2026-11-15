@@ -588,6 +588,15 @@ const outward = pts => {             // Flächen so ordnen, dass ihre Vorderseit
 };
 const mkSticker = (pts, color) => { const p = outward(pts); return { pts: p, color, c: centroidOf(p) }; };
 
+// Zahnkranz-Muster in ein Dreieck legen (Gear Pyraminx).
+function addTriDeco(st, col) {
+  const [A, B, C] = st.pts, c = st.c, n = V.norm(V.cross(V.sub(B, A), V.sub(C, A)));
+  const a = V.len(V.sub(B, C)), b = V.len(V.sub(A, C)), d = V.len(V.sub(A, B));
+  const inr = 2 * (V.len(V.cross(V.sub(B, A), V.sub(C, A))) / 2) / (a + b + d);
+  const e1 = V.norm(V.sub(A, c)), e2 = V.cross(n, e1);
+  st.deco = GEAR_SHAPES.tri().map(([x, y]) => V.add(V.add(c, V.mul(n, 0.006)), V.add(V.mul(e1, x * inr * 0.95), V.mul(e2, y * inr * 0.95))));
+  st.decoColor = col;
+}
 function buildSkewb() {
   const faceColors = [["#d62828", "#ff8a00"], ["#f2f2f2", "#ffd400"], ["#1fa84f", "#1f5fd1"]];
   const stickers = [], hull = [];
@@ -611,15 +620,16 @@ function buildSkewb() {
   return { stickers, hull, moves, scale: 38 };
 }
 
-function buildPyraminx() {
+function buildPyraminx(gear = false) {
   const rho = Math.sqrt(8) / 3, h = Math.PI / 6;
   const P = { U: [0, 1, 0], R: [rho * Math.cos(h), -1 / 3, rho * Math.sin(h)], L: [-rho * Math.cos(h), -1 / 3, rho * Math.sin(h)], B: [0, -1 / 3, -rho] };
   const faces = [[P.U, P.L, P.R, "#1fa84f"], [P.U, P.R, P.B, "#d62828"], [P.U, P.B, P.L, "#1f5fd1"], [P.L, P.B, P.R, "#ffd400"]];
   const stickers = [], hull = [];
   faces.forEach(([A, B, C, col]) => {
     const pt = (i, j) => V.add(A, V.add(V.mul(V.sub(B, A), i / 3), V.mul(V.sub(C, A), j / 3)));
-    for (let i = 0; i < 3; i++) for (let j = 0; i + j <= 2; j++) stickers.push(mkSticker([pt(i, j), pt(i + 1, j), pt(i, j + 1)], col));
-    for (let i = 0; i < 2; i++) for (let j = 0; i + j <= 1; j++) stickers.push(mkSticker([pt(i + 1, j), pt(i + 1, j + 1), pt(i, j + 1)], col));
+    const add = tri => { const st = mkSticker(tri, gear ? "#1b1d22" : col); if (gear) addTriDeco(st, col); stickers.push(st); };
+    for (let i = 0; i < 3; i++) for (let j = 0; i + j <= 2; j++) add([pt(i, j), pt(i + 1, j), pt(i, j + 1)]);
+    for (let i = 0; i < 2; i++) for (let j = 0; i + j <= 1; j++) add([pt(i + 1, j), pt(i + 1, j + 1), pt(i, j + 1)]);
     hull.push(outward([A, B, C].map(p => V.mul(p, 0.97))));
   });
   const moves = {};
@@ -711,6 +721,18 @@ function buildMegaminx() {
   return { stickers, hull, moves, scale: 36 };
 }
 
+
+/* Zahnrad-Muster für Gear-Würfel: Form in lokalen Koordinaten (-1..1), wird auf den Aufkleber gelegt. */
+const GEAR_SHAPES = {
+  center: () => polarShape(th => 0.42 + 0.72 * Math.pow(Math.abs(Math.sin(2 * th)), 1.3)),                 // großes Kleeblatt (X)
+  edge: () => polarShape(th => 0.74 + 0.2 * Math.tanh(2.5 * Math.sin(6 * th))),                          // Zahnrad mit 6 Zähnen
+  corner: phi => polarShape(th => 0.55 + 0.6 * Math.pow(Math.max(0, Math.cos(th - phi)), 2)
+    + 0.35 * Math.pow(Math.max(0, Math.cos(th - phi - Math.PI / 2)), 4) + 0.35 * Math.pow(Math.max(0, Math.cos(th - phi + Math.PI / 2)), 4) + 0.1 * Math.tanh(3 * Math.sin(8 * th))),   // mit Zähnen
+  tri: () => polarShape(th => 0.8 + 0.25 * Math.tanh(2.5 * Math.sin(6 * th)))                             // Zahnkranz im Dreieck
+};
+function polarShape(r, n = 64) {
+  return Array.from({ length: n }, (_, i) => { const th = 2 * Math.PI * i / n, k = r(th); return [k * Math.cos(th), k * Math.sin(th)]; });
+}
 /* Würfel aus Einzelteilen (Kästchen + Aufkleber). Ein Zug dreht alle Teile, deren Mitte hinter einer Schnittebene liegt. */
 const CUBE_COLORS = { R: "#d62828", L: "#ff8a00", U: "#f2f2f2", D: "#ffd400", F: "#1fa84f", B: "#1f5fd1" };
 function buildCubeGrid(bounds, opts = {}) {
@@ -737,7 +759,18 @@ function buildCubeGrid(bounds, opts = {}) {
       const onSurface = side ? idx[a] === n[a] - 1 : idx[a] === 0;
       if (onSurface) {
         const st = orient([corner(0, 0, 1), corner(1, 0, 1), corner(1, 1, 1), corner(0, 1, 1)]);
-        items.push({ pts: st, color: opts.mono || CUBE_COLORS[faceKey[a][side]], piece, c: centroidOf(st), bias: 0.03 });
+        const faceColor = opts.mono || CUBE_COLORS[faceKey[a][side]];
+        const item = { pts: st, color: opts.gear ? "#1b1d22" : faceColor, piece, c: centroidOf(st), bias: 0.03 };
+        if (opts.gear) {
+          // Mitte = Kleeblatt, Kante = Zahnrad, Ecke = Arm zur Würfel-Ecke
+          const m1 = (lo[b1] + hi[b1]) / 2, m2 = (lo[b2] + hi[b2]) / 2, h1 = (hi[b1] - lo[b1]) / 2 * 0.86, h2 = (hi[b2] - lo[b2]) / 2 * 0.86;
+          const kind = outerAxes.length === 1 ? "center" : outerAxes.length === 2 ? "edge" : "corner";
+          const phi = Math.atan2(Math.sign(m2 || 0), Math.sign(m1 || 0));
+          const shape = kind === "corner" ? GEAR_SHAPES.corner(phi) : GEAR_SHAPES[kind]();
+          item.deco = shape.map(([x, y]) => { const q = [0, 0, 0]; q[a] = v + (side ? 1 : -1) * 0.012; q[b1] = m1 + x * h1; q[b2] = m2 + y * h2; return q; });
+          item.decoColor = faceColor;
+        }
+        items.push(item);
       }
     }
   }
@@ -787,7 +820,7 @@ const PUZZLE_BUILDERS = {
   "2x2": () => buildCubeN(2), "3x3": () => buildCubeN(3), "3x3 Mirror": buildMirror, "4x4": () => buildCubeN(4),
   Pyraminx: buildPyraminx, Skewb: buildSkewb, Megaminx: buildMegaminx,
   "Gear 3x3": () => buildCubeN(3, { gear: true }), "Gear Zylinder": () => buildCubeN(3, { gear: true, shape: toCylinder }),
-  "Gear Ball": () => buildCubeN(3, { gear: true, shape: toBall }), "Gear Pyraminx": buildPyraminx
+  "Gear Ball": () => buildCubeN(3, { gear: true, shape: toBall }), "Gear Pyraminx": () => buildPyraminx(true)
 };
 const buildPuzzle = kind => PUZZLE_BUILDERS[kind]();
 
@@ -796,29 +829,32 @@ function drawPuzzle(ctx, W, H, P, moving, scaleK = 1) {
   const S = P.scale * scaleK, cx = W / 2, cy = H / 2, list = [];
   const view = p => rodrigues(rodrigues(p, [0, 1, 0], -35 * Math.PI / 180), [1, 0, 0], 25 * Math.PI / 180);
   const L = V.norm([0.3, 0.6, 1]);
-  const push = (pts, color, bias, lit) => {
-    const vp = pts.map(p => view(P.shape ? P.shape(p) : p)), n = V.cross(V.sub(vp[1], vp[0]), V.sub(vp[2], vp[0]));
+  const proj = pts => pts.map(p => view(P.shape ? P.shape(p) : p));
+  const push = (pts, color, bias, lit, deco, decoColor) => {
+    const vp = proj(pts), n = V.cross(V.sub(vp[1], vp[0]), V.sub(vp[2], vp[0]));
     if (n[2] <= 0) return;
     let col = color;
     if (lit) { const k = 0.45 + 0.55 * Math.max(0, V.dot(V.norm(n), L)); col = `rgb(${Math.round(201 * k)},${Math.round(206 * k)},${Math.round(214 * k)})`; }
-    list.push({ vp, color: col, z: bias + vp.reduce((a, p) => a + p[2], 0) / vp.length });
+    const polys = [{ vp, color: col }];
+    if (deco) polys.push({ vp: proj(deco), color: decoColor, deco: true });     // Muster direkt nach seinem Aufkleber zeichnen
+    list.push({ polys, z: bias + vp.reduce((a, p) => a + p[2], 0) / vp.length });
   };
   P.hull.forEach(h => push(h, "#101217", -20));
   P.stickers.forEach(s => {
     const f = moving ? moving.map.get(s) : undefined;
-    const pts = f !== undefined ? s.pts.map(p => rotAround(p, moving.axis, moving.rad * f, moving.center)) : s.pts;
-    push(pts, s.color, s.bias || 0, P.shade && s.color !== "#121317");
+    const mv = arr => (f !== undefined ? arr.map(p => rotAround(p, moving.axis, moving.rad * f, moving.center)) : arr);
+    push(mv(s.pts), s.color, s.bias || 0, P.shade && s.color !== "#121317", s.deco && mv(s.deco), s.decoColor);
   });
   list.sort((a, b) => a.z - b.z);
   ctx.clearRect(0, 0, W, H);
   ctx.lineJoin = "round";
-  list.forEach(f => {
+  list.forEach(e => e.polys.forEach(f => {
     ctx.beginPath();
     f.vp.forEach((p, i) => { const x = cx + S * p[0], y = cy - S * p[1]; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
     ctx.closePath();
     ctx.fillStyle = f.color; ctx.fill();
-    ctx.strokeStyle = "#0b0c0f"; ctx.lineWidth = 1.2 * scaleK; ctx.stroke();
-  });
+    ctx.strokeStyle = f.deco ? "rgba(0,0,0,.55)" : "#0b0c0f"; ctx.lineWidth = (f.deco ? 0.8 : 1.2) * scaleK; ctx.stroke();
+  }));
 }
 const rotAround = (p, k, rad, c) => c ? V.add(rodrigues(V.sub(p, c), k, rad), c) : rodrigues(p, k, rad);
 
@@ -942,6 +978,7 @@ class PolyDemo {
           const rad = total * Math.PI / 180, done = new Set();
           map.forEach((f, s) => {
             s.pts = s.pts.map(p => rotAround(p, def.axis, rad * f, center)); s.c = centroidOf(s.pts);
+            if (s.deco) s.deco = s.deco.map(p => rotAround(p, def.axis, rad * f, center));
             if (s.piece && !done.has(s.piece)) { done.add(s.piece); s.piece.c = rotAround(s.piece.c, def.axis, rad * f, center); }
           });
           if (puzzle === this.puzzle) this.draw();
