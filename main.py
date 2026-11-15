@@ -1,4 +1,4 @@
-"""Speedcube-Timer – Phase 1: UI-Grundgerüst + Farb-Event."""
+"""Cube Solver inclusive Time tracking – Desktop-App (Timer, Scrambler, SQLite)."""
 import random
 import sqlite3
 import sys
@@ -145,7 +145,7 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Speedcube Timer")
+        self.title("Cube Solver inclusive Time tracking")
         self.geometry("1100x500")
         self.scrambler = Scrambler()
         self.db = Database()

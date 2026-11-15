@@ -1,8 +1,8 @@
-# Speedcube-Timer
+# Cube Solver inclusive Time tracking
 
 Timer für Zauberwürfel mit Mischalgorithmus, Zeiten-Speicher und Lösungsanleitungen.
 
-**Ausprobieren:** https://thebrina91.github.io/speedcube-timer/
+**Ausprobieren:** https://thebrina91.github.io/Cube-Solver-inclusive-Time-tracking/
 
 ## Über das Projekt
 Alle Zauberwürfel, die in diesem Projekt vorkommen, besitze ich selbst.
