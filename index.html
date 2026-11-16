@@ -84,6 +84,15 @@
   .algos { flex: 1; overflow-y: auto; padding: 16px; min-height: 0; -webkit-user-select: text; user-select: text; }
   .algos-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* Variante mit Drop-down statt Knöpfen */
+  .dropdown { font: inherit; font-size: 16px; font-weight: 600; color: var(--text); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 36px 8px 12px; min-width: 200px; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%; background-size: 6px 6px; background-repeat: no-repeat; }
+  .dropdown:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .pick-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .pick-row label { color: var(--muted, #9aa0aa); font-size: 14px; }
   .chip {
     font: inherit; font-size: 15px; font-weight: 600; color: var(--text); background: var(--surface);
     border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer;
@@ -1000,18 +1009,41 @@ function parseTok(tok) {
   return m ? { name: m[1], prime: !!(m[2] || m[4]), count: m[3] ? parseInt(m[3], 10) : 1 } : null;
 }
 
+const PUZZLE_GROUPS = [
+  ["Würfel", ["2x2", "3x3", "3x3 Mirror", "4x4"]],
+  ["Andere Formen", ["Pyraminx", "Skewb", "Megaminx"]],
+  ["Gear-Würfel", ["Gear 3x3", "Gear Zylinder", "Gear Ball", "Gear Pyraminx"]]
+];
+// Baut ein Drop-down mit Gruppen. Nach der Auswahl wird der Fokus entfernt, damit die Leertaste wieder den Timer steuert.
+function makeDropdown(id, label, groups, value, onPick) {
+  const sel = document.createElement("select");
+  sel.id = id; sel.className = "dropdown"; sel.setAttribute("aria-label", label);
+  groups.forEach(([name, items]) => {
+    const g = document.createElement("optgroup"); g.label = name;
+    items.forEach(it => { const o = document.createElement("option"); o.value = it; o.textContent = it; g.appendChild(o); });
+    sel.appendChild(g);
+  });
+  sel.value = value;
+  sel.addEventListener("change", () => { onPick(sel.value); sel.blur(); });
+  return sel;
+}
 class AlgoGuide {
   constructor() {
     this.current = "3x3";
     this.chips = document.getElementById("chips");
     this.legend = document.getElementById("legend");
     this.steps = document.getElementById("steps");
-    Object.keys(ALGOS).forEach(name => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "chip"; b.textContent = name;
-      b.addEventListener("click", () => { this.current = name; this.render(); });
-      this.chips.appendChild(b);
-    });
+    const algoGroups = [
+      ["Würfel", ["2x2", "3x3", "3x3 Speed", "3x3 Roux", "3x3 Mirror", "4x4"]],
+      ["Andere Formen", ["Pyraminx", "Skewb", "Megaminx"]],
+      ["Gear-Würfel", ["Gear 3x3", "Gear Zylinder", "Gear Ball", "Gear Pyraminx"]]
+    ];
+    const known = new Set(algoGroups.flatMap(g => g[1]));
+    const rest = Object.keys(ALGOS).filter(k => !known.has(k));            // falls später neue Würfel dazukommen
+    if (rest.length) algoGroups.push(["Weitere", rest]);
+    this.select = makeDropdown("algo-select", "Würfel-Art", algoGroups, this.current, name => { this.current = name; this.render(); });
+    const lab = document.createElement("label"); lab.htmlFor = "algo-select"; lab.textContent = "Würfel:";
+    this.chips.className = "pick-row"; this.chips.append(lab, this.select);
     this.cube = new CubeDemo(this);
     this.poly = new PolyDemo(this);
     this.demo = this.cube;
@@ -1049,7 +1081,7 @@ class AlgoGuide {
   }
   render() {
     const data = ALGOS[this.current];
-    [...this.chips.children].forEach(b => b.setAttribute("aria-pressed", String(b.textContent === this.current)));
+    this.select.value = this.current;
     this.legend.textContent = this.fill(data.legend);
     this.pickDemo();
     this.steps.replaceChildren();
@@ -1103,14 +1135,13 @@ class App {
   dbFor(p) { return this.dbs[p] || (this.dbs[p] = new Database(p === "3x3" ? "cube-timer-solves" : "cube-timer-solves-" + p)); }
   buildPuzzleChips() {
     const box = document.getElementById("puzzle-chips");
-    this.puzzleChips = ["2x2", "3x3", "3x3 Mirror", "4x4", "Pyraminx", "Skewb", "Megaminx", "Gear 3x3", "Gear Zylinder", "Gear Ball", "Gear Pyraminx"].map(p => {
-      const b = document.createElement("button");
-      b.type = "button"; b.className = "chip small"; b.textContent = p;
-      b.setAttribute("aria-pressed", String(p === this.puzzle));
-      b.addEventListener("click", () => this.setPuzzle(p));
-      box.appendChild(b);
-      return b;
+    this.puzzleChips = [];
+    this.puzzleSelect = makeDropdown("puzzle-select", "Welcher Würfel?", PUZZLE_GROUPS, this.puzzle, p => {
+      this.setPuzzle(p);
+      this.puzzleSelect.value = this.puzzle;   // während der Lösung wird nicht gewechselt
     });
+    box.classList.add("pick-row");
+    box.appendChild(this.puzzleSelect);
     const reset = document.createElement("button");
     reset.type = "button"; reset.className = "chip small"; reset.textContent = "↺ Reset";
     reset.setAttribute("aria-label", "Zurücksetzen. Du wählst danach, was zurückgesetzt wird.");
