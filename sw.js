@@ -1,5 +1,5 @@
 // Offline-Speicher: legt die App beim ersten Öffnen ab und startet sie danach auch ohne Internet.
-const CACHE = "cube-solver-v2";   // bei jeder neuen Version hochzählen
+const CACHE = "cube-solver-v3";   // bei jeder neuen Version hochzählen
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 
 self.addEventListener("install", e => {

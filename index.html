@@ -428,14 +428,14 @@ ALGOS["4x4"] = {
   steps: [
     { title: "1. Mitten bauen", why: "Jede Seite hat 4 Mittelstücke. Baue zuerst die weiße und gelbe Mitte (gegenüber), dann die 4 übrigen. Das machst du ohne Formel.",
       algs: [{ name: "intuitiv", moves: "–" }] },
-    { title: "2. Kanten paaren", why: "Je zwei gleiche Kantenstücke bilden ein Paar. Sind alle 12 Paare fertig, ist der Würfel wie ein 3x3.",
-      algs: [{ name: "intuitiv", moves: "–" }] },
+    { title: "2. Kanten paaren", why: "Je zwei gleiche Kantenstücke bilden ein Paar. Halte die zwei passenden Stücke vorne, eins rechts oder links in der Mitte. Die Mitten bleiben dabei heil. Sind alle 12 Paare fertig, ist der Würfel wie ein 3x3.",
+      algs: [{ name: "Kante rechts paaren", moves: "r U' R U r'" }, { name: "Kante links paaren", moves: "l' U L U' l" }] },
     { title: "3. Wie einen 3x3 lösen", why: "Ab jetzt behandelst du ihn wie einen 3x3: Kreuz, erste zwei Ebenen, letzte Ebene. Nutze nur die äußeren Schichten.",
       algs: [{ name: "siehe 3x3", moves: "–" }] },
     { title: "4. OLL-Parität (eine Kante gekippt)", why: "Oben ist eine einzelne Kante falsch herum, das gibt es beim 3x3 nie. Halte die gekippte Kante vorne und mach die Formel.",
-      algs: [{ name: "OLL-Parität", moves: "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'" }] },
-    { title: "5. PLL-Parität (zwei Kanten getauscht)", why: "Am Ende sind zwei gegenüberliegende Kanten vertauscht. Gelb nach oben, die zwei Kanten vorne und hinten.",
-      algs: [{ name: "PLL-Parität", moves: "r2 U2 r2 Uw2 r2 u2" }] }
+      algs: [{ name: "Kante flippen", moves: "r2 B2 U2 l U2 r' U2 r U2 F2 r F2 l' B2 r2" }, { name: "Alternative (mit Rw und x)", moves: "Rw U2 x Rw U2 Rw U2 Rw' U2 Lw U2 Rw' U2 Rw U2 Rw' U2 Rw'" }] },
+    { title: "5. PLL-Parität (Ecken tauschen)", why: "Am Ende passt es nicht: zwei Ecken (oder zwei gegenüberliegende Kanten) sind vertauscht. Gelb nach oben, Formel einmal, dann die obere Schicht drehen, bis es passt.",
+      algs: [{ name: "Ecken tauschen", moves: "Uw2 Lw2 U2 l2 U2 Lw2 Uw2" }, { name: "Alternative (kürzer)", moves: "r2 U2 r2 Uw2 r2 u2" }] }
   ]
 };
 const DEMO_KEYS = ["3x3", "3x3 Speed", "3x3 Roux"];
